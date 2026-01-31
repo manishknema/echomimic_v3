@@ -414,7 +414,16 @@ def main():
         video_clip = VideoFileClip(tmp_video_path)
         audio_clip = audio_clip.subclipped(0, video_length_actual / fps)
         video_clip = video_clip.with_audio(audio_clip)
-        video_clip.write_videofile(output_video_path, codec="libx264", audio_codec="aac", threads=2)
+        tmp_audio = output_video_path + ".tmp_audio.m4a"
+        # VIGYAN: force absolute temp audio path (MoviePy otherwise uses relative temp names that can break)
+        video_clip.write_videofile(
+            output_video_path,
+            codec="libx264",
+            audio_codec="aac",
+            threads=2,
+            temp_audiofile=tmp_audio,
+            remove_temp=True,
+        )
 
         # Clean up temporary file
         os.remove(tmp_video_path)
