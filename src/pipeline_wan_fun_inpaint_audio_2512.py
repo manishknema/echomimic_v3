@@ -1,3 +1,4 @@
+from __future__ import annotations
 import inspect
 import math
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from diffusers.video_processor import VideoProcessor
 from einops import rearrange
 from PIL import Image
 from transformers import T5Tokenizer
+from transformers import AutoTokenizer
 import torch.nn.functional as F
 
 
