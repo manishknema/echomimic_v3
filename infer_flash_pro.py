@@ -235,7 +235,10 @@ def main():
                 m, u = transformer.load_state_dict(state_dict, strict=False)
             else:
                 print(f"[VIGYAN] checkpoint not found, skipping: {ckpt_file}")
-        print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
+        if 'm' in locals() and 'u' in locals() and m is not None and u is not None:
+            print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
+        else:
+            print("[VIGYAN] no checkpoint state_dict loaded; skipping missing/unexpected key report")
 
     # Get Vae
     vae = AutoencoderKLWan.from_pretrained(
