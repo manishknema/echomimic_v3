@@ -227,6 +227,8 @@ def main():
         if transformer_path.endswith("safetensors"):
             from safetensors.torch import load_file, safe_open
             state_dict = load_file(transformer_path)
+            m, u = transformer.load_state_dict(state_dict, strict=False)   # <-- ADD THIS
+            print(f"[VIGYAN] loaded safetensors: {transformer_path}")
         else:
             ckpt_file = os.path.join(transformer_path, f"checkpoint-{ckpt_idx}.pth")
             if os.path.exists(ckpt_file):
