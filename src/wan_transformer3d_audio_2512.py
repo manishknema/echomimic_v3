@@ -1,3 +1,18 @@
+# VIGYAN_IMPORT_GUARD_FLASH_ATTN: ensure flags always exist at import-time
+FLASH_ATTN_2_AVAILABLE = False
+FLASH_ATTN_3_AVAILABLE = False
+try:
+    import flash_attn  # noqa: F401
+    FLASH_ATTN_2_AVAILABLE = True
+except Exception:
+    FLASH_ATTN_2_AVAILABLE = False
+
+try:
+    import flash_attn_interface  # noqa: F401
+    FLASH_ATTN_3_AVAILABLE = True
+except Exception:
+    FLASH_ATTN_3_AVAILABLE = False
+
 # Modified from https://github.com/Wan-Video/Wan2.1/blob/main/wan/modules/model.py
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 
