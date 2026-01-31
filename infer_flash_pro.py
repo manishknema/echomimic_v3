@@ -228,8 +228,14 @@ def main():
             from safetensors.torch import load_file, safe_open
             state_dict = load_file(transformer_path)
         else:
-            state_dict = torch.load(os.path.join(transformer_path, f'checkpoint-{ckpt_idx}.pth'))
-        state_dict = state_dict["state_dict"] if "state_dict" in state_dict else state_dict
+            ckpt_file = os.path.join(transformer_path, f'checkpoint-{ckpt_idx}.pth')
+    if os.path.exists(ckpt_file):
+        state_dict = torch.load(ckpt_file, map_location='cpu')
+        print(f'[VIGYAN] loaded checkpoint: {ckpt_file}')
+    else:
+        state_dict = None
+        print(f'[VIGYAN] checkpoint not found, skipping: {ckpt_file}')
+state_dict = state_dict["state_dict"] if "state_dict" in state_dict else state_dict
 
         m, u = transformer.load_state_dict(state_dict, strict=False)
         print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
