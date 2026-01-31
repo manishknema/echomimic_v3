@@ -60,3 +60,25 @@ def set_multi_gpus_devices(ulysses_degree, ring_degree):
     else:
         device = "cuda"
     return device
+
+# VIGYAN_IMPORT_GUARD_DIST:
+# The upstream research stack may assume distributed/fuser symbols exist.
+# For single-node local benchmarks and for --help gate, we must not crash at import time.
+# These shims provide clear errors only if the distributed path is actually invoked.
+def _vigyan_dist_unavailable(name: str):
+    raise RuntimeError(
+        f"{name} is unavailable in this single-node benchmark build. "
+        "Distributed / fuser stack is intentionally optional."
+    )
+
+for _sym in [
+    "get_sequence_parallel_rank",
+    "get_sequence_parallel_world_size",
+    "get_sp_group",
+    "get_world_group",
+    "init_distributed_environment",
+    "initialize_model_parallel",
+    "xFuserLongContextAttention",
+]:
+    if _sym not in globals():
+        globals()[_sym] = (lambda _n=_sym: _vigyan_dist_unavailable(_n))
