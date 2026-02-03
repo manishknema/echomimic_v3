@@ -1,0 +1,87 @@
+# docker/Dockerfile.echomimic-v3.py311-cu128.flashattn.runtime-libs
+#
+# Canonical lane (combined):
+# - Python 3.11 (venv at /opt/venv to avoid PEP 668 issues)
+# - CUDA 12.8 devel (nvcc present; required to build flash-attn when no wheel exists)
+# - Torch cu128 pinned (from PyTorch cu128 wheel index)
+# - Installs runtime shared libs needed by OpenCV/ffmpeg/gl/xcb/etc
+#
+# Build example:
+#   docker build -f docker/Dockerfile.echomimic-v3.py311-cu128.flashattn.runtime-libs \
+#     -t vigyan/echomimic-v3:canonical-py311-cu128-flashattn-runtime-libs .
+#
+# Notes:
+# - This Dockerfile replaces earlier overlay patterns (libxcb1 + runtime-libs overlays).
+# - Do NOT bake host-specific model paths into the image. Bind-mount at runtime.
+
+FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONUNBUFFERED=1 \
+    CUDA_HOME=/usr/local/cuda \
+    PATH=/opt/venv/bin:$PATH
+
+# --- OS packages ---
+# Build deps (flash-attn): build-essential, ninja, pkg-config, git
+# Python 3.11 deps: deadsnakes PPA + python3.11 + headers
+# Runtime libs: libgl1, libx11-6, libxext6, libxcb1, etc.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      git \
+      build-essential \
+      ninja-build \
+      pkg-config \
+      software-properties-common \
+      python3-distutils \
+      \
+      libgl1 \
+      libice6 \
+      libsm6 \
+      libx11-6 \
+      libxext6 \
+      libxcb1 \
+      libtbb12 \
+      libgfortran5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Python 3.11 on Ubuntu 22.04 ---
+RUN add-apt-repository -y ppa:deadsnakes/ppa \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends \
+       python3.11 \
+       python3.11-venv \
+       python3.11-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# --- Create venv to avoid PEP 668 issues ---
+RUN python3.11 -m venv /opt/venv \
+  && /opt/venv/bin/python -m pip install --no-cache-dir -U pip setuptools wheel
+
+# --- Install Torch (cu128) into venv ---
+# Keep it minimal: torch only (add torchvision/torchaudio only if you actually need them).
+RUN /opt/venv/bin/python -m pip install --no-cache-dir \
+      --index-url "${TORCH_INDEX_URL}" \
+      "torch==2.10.0+cu128"
+
+# --- Requirements ---
+# Keep these next to this Dockerfile under docker/
+COPY docker/requirements.vigyan.core.txt /tmp/requirements.vigyan.core.txt
+COPY docker/requirements.vigyan.optional.txt /tmp/requirements.vigyan.optional.txt
+
+RUN /opt/venv/bin/python -m pip install --no-cache-dir -r /tmp/requirements.vigyan.core.txt
+
+# --- Flash-Attn ---
+# Use no-build-isolation so the build can see torch already installed in the venv.
+RUN /opt/venv/bin/python -m pip install --no-cache-dir --no-build-isolation "flash-attn==2.8.3" \
+  && /opt/venv/bin/python -c "import flash_attn; print('flash-attn OK')"
+
+# Optional extras lane (disabled by default)
+# RUN /opt/venv/bin/python -m pip install --no-cache-dir -r /tmp/requirements.vigyan.optional.txt
+
+WORKDIR /workspace
+CMD ["bash"]
+

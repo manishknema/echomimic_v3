@@ -1,0 +1,44 @@
+# requirements.vigyan.core.txt
+#
+# Goal:
+#   Minimal, deterministic dependency closure to get:
+#     - python infer_flash_pro.py --help  (no traceback)
+#     - basic import sanity
+#
+# Rules:
+#   - DO NOT install torch/torchvision/torchaudio here (base image provides them).
+#   - Avoid heavy/optional stacks (tensorflow, flash-attn, distributed fusers) in this core lane.
+#   - Keep versions mostly unpinned unless the upstream file pins for correctness.
+
+Pillow
+einops
+safetensors
+timm
+tomesd
+torchdiffeq
+torchsde
+decord
+datasets
+numpy
+scikit-image
+opencv-python
+omegaconf
+SentencePiece
+albumentations
+imageio
+imageio-ffmpeg
+tensorboard
+beautifulsoup4
+ftfy
+func_timeout
+onnxruntime
+accelerate>=0.25.0
+gradio>=3.41.2
+diffusers>=0.30.1
+transformers>=4.46.2
+moviepy==2.2.1
+retina-face==0.0.17
+librosa
+scipy
+pyloudnorm
+

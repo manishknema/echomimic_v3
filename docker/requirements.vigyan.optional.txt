@@ -1,0 +1,22 @@
+# requirements.vigyan.optional.txt
+#
+# Goal:
+#   Optional performance / experimental / heavy dependencies.
+#   These MUST NOT block basic import and help gate.
+#
+# Install only if you explicitly choose to test these lanes.
+
+# Heavy
+tensorflow==2.15.0
+
+# Performance / custom-kernel-ish (often fragile; keep optional)
+flash-attn
+
+# Repo-scan indicated these modules exist in imports in some paths.
+# They may or may not be required for Flash-Pro path; keep optional.
+xfuser
+mmgp
+
+# If the code references "pai_fuser" but it isn't on PyPI, do not add it here.
+# Handle it via guarded imports in code instead.
+
