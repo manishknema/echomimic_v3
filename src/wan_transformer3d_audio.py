@@ -1524,8 +1524,12 @@ class WanTransformerAudioMask3DModel(ModelMixin, ConfigMixin, FromOriginalModelM
                 import re
 
                 from diffusers import __version__ as diffusers_version
-                from diffusers.models.modeling_utils import \
-                    load_model_dict_into_meta
+                try:
+                    from diffusers.models.modeling_utils import \
+                        load_model_dict_into_meta
+                except ImportError:
+                    print("VIGYAN: WanTransformerAudioMask3DModel: using legacy load_model_dict_into_meta")
+                    from diffusers.models.model_loading_utils import load_model_dict_into_meta
                 from diffusers.utils import is_accelerate_available
                 if is_accelerate_available():
                     import accelerate

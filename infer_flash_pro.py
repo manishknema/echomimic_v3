@@ -9,7 +9,12 @@ from omegaconf import OmegaConf
 from PIL import Image
 from transformers import AutoTokenizer
 
-
+# Compatibility fix for diffusers 0.36.0
+try:
+    from diffusers.models.modeling_utils import load_model_dict_into_meta
+except ImportError:
+    print("VIGYAN: infer_flash_pro.py: Using compatibility import for diffusers < 0.36.0")
+    from diffusers.models.model_loading_utils import load_model_dict_into_meta
 
 
 from src.dist import set_multi_gpus_devices, shard_model
@@ -38,8 +43,35 @@ from transformers import Wav2Vec2FeatureExtractor
 from src.wav2vec2 import Wav2Vec2Model
 from einops import rearrange
 
+def apply_vram_limit(gb_limit=24):
+    """Strictly cap PyTorch VRAM allocation."""
+    if torch.cuda.is_available():
+        total_mem = torch.cuda.get_device_properties(0).total_memory
+        fraction = (gb_limit * 1024**3) / total_mem
+        try:
+            torch.cuda.set_per_process_memory_fraction(fraction, 0)
+            print(f"[VIGYAN] Hard VRAM Cap active: {gb_limit}GB (Fraction: {fraction:.2f})")
+        except RuntimeError:
+            print("[VIGYAN] Warning: VRAM Cap ignored (memory already allocated).")
+
+def optimize_pipeline(pipeline, mode="model_cpu_offload"):
+    """Optimization specifically for RTX 5080 (Blackwell)."""
+    # [VIGYAN FIX] Custom VAE does not support tiling. Removed enable_tiling/slicing.
+    
+    # Model Offload: Keeps weights on CPU, moves only active blocks to GPU
+    if mode == "sequential_cpu_offload":
+        print("[VIGYAN] Enabling Sequential CPU Offload...")
+        pipeline.enable_sequential_cpu_offload()
+    elif mode == "model_cpu_offload":
+        print("[VIGYAN] Enabling Model CPU Offload (Recommended for 5080)...")
+        pipeline.enable_model_cpu_offload()
+    else:
+        print("[VIGYAN] Full GPU Residency Enabled.")
+        pipeline.to("cuda")
+
 def parse_args():
     parser = argparse.ArgumentParser(description="WanFun Inference")
+    
     
     # Model paths and config
     parser.add_argument("--config_path", type=str, default="config/wan2.1/wan_civitai.yaml", help="Config path")
@@ -158,6 +190,8 @@ def loudness_norm(audio_array, sr=16000, lufs=-23):
 
 def main():
     args = parse_args()
+    # VIGYAN: Apply the 24GB limit immediately
+    apply_vram_limit(30)
     
     # Assign args to original variables
     config_path = args.config_path
@@ -213,11 +247,14 @@ def main():
 
     device = set_multi_gpus_devices(ulysses_degree, ring_degree)
     config = OmegaConf.load(config_path)
-
+    # [VIGYAN CRITICAL FIX]
+    # Change low_cpu_mem_usage to False. 
+    # True = tries to load on "Meta" device -> causes "no-op" warnings -> Empty Model
+    # False = loads directly to RAM -> Success
     transformer = WanTransformer.from_pretrained(
         os.path.join(model_name, config['transformer_additional_kwargs'].get('transformer_subpath', 'transformer')),
         transformer_additional_kwargs=OmegaConf.to_container(config['transformer_additional_kwargs']),
-        low_cpu_mem_usage=True if not fsdp_dit else False,
+        low_cpu_mem_usage=False ,#True if not fsdp_dit else False, [VIGYAN FIX] Force False to load real weights
         torch_dtype=weight_dtype,
     )
 
@@ -269,7 +306,7 @@ def main():
     text_encoder = WanT5EncoderModel.from_pretrained(
         os.path.join(model_name, config['text_encoder_kwargs'].get('text_encoder_subpath', 'text_encoder')),
         additional_kwargs=OmegaConf.to_container(config['text_encoder_kwargs']),
-        low_cpu_mem_usage=True,
+        low_cpu_mem_usage=False,  # [VIGYAN FIX] Force Real RAM Loading
         torch_dtype=weight_dtype,
     )
     text_encoder = text_encoder.eval()
@@ -310,7 +347,16 @@ def main():
             pipeline.transformer = shard_fn(pipeline.transformer)
 
 
-    pipeline.to(device=device)
+    # 2. VIGYAN OPTIMIZATION APPLIED HERE (Replaces pipeline.to(device))
+    # This activates the Model CPU Offloading and VAE Tiling
+    optimize_pipeline(pipeline, mode=GPU_memory_mode)
+
+    # # Instead of pipeline.to(device)
+    # if torch.cuda.get_device_properties(0).total_memory < 24 * 1024**3: # Logic for < 24GB GPU
+    #     print("[VIGYAN] Enabling Model CPU Offload for RTX 5090 optimization...")
+    #     pipeline.enable_model_cpu_offload()
+    # else:
+    #     pipeline.to(device)
 
     coefficients = get_teacache_coefficients(model_name) if enable_teacache else None
     if coefficients is not None:
@@ -321,7 +367,9 @@ def main():
 
     generator = torch.Generator(device=device).manual_seed(seed)
 
-    pipeline.to(device=device)
+    # [VIGYAN FIX] Only move to GPU if we are NOT using offloading
+    if GPU_memory_mode == "full":
+        pipeline.to(device)
 
     # Create output directory
     if not os.path.exists(save_path):

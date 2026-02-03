@@ -317,8 +317,14 @@ class WanT5EncoderModel(ModelMixin, ConfigMixin, FromOriginalModelMixin):
                 import re
 
                 from diffusers import __version__ as diffusers_version
-                from diffusers.models.modeling_utils import \
-                    load_model_dict_into_meta
+                try:
+                    from diffusers.models.modeling_utils import \
+                        load_model_dict_into_meta
+                except ImportError:
+                    print("VIGYAN:[WanT5EncoderModel] Using legacy import for load_model_dict_into_meta...")
+                    from diffusers.models.model_loading_utils  import load_model_dict_into_meta
+                # from diffusers.models.modeling_utils import \
+                #     load_model_dict_into_meta
                 from diffusers.utils import is_accelerate_available
                 if is_accelerate_available():
                     import accelerate
