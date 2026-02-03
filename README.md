@@ -140,7 +140,7 @@ or implicit downloads were relied upon.
 
 | Component                | Source Repository                                                                                     | Notes                              |
 | ------------------------ |----------------------------------------------------------------------------------------------------- | ---------------------------------- | 
-| **WAN 2.1 Base**         | `alibaba-pai/Wan2.1-Fun-V1.1-1.3B-InP`                                                                | Foundation model bundle            |
+| **WAN 2.1 Base**         | [`alibaba-pai/Wan2.1-Fun-V1.1-1.3B-InP`](https://huggingface.co/alibaba-pai/Wan2.1-Fun-V1.1-1.3B-InP)                                                                | Foundation model bundle            |
 | **Tokenizer**            | [`Wan-AI/Wan2.1-T2V-1.3B-Diffusers`](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B-Diffusers)         | Downloaded into `tokenizer/`       |
 | **Text Encoder (UMT5)**  | [`Wan-AI/Wan2.1-T2V-1.3B-Diffusers`](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B-Diffusers)         | Downloaded into `tokenizer/`       | Downloaded into `text_encoder/` |
 | **Image Encoder (CLIP)** | [`Wan-AI/Wan2.1-I2V-14B-720P-Diffusers`](https://huggingface.co/Wan-AI/Wan2.1-I2V-14B-720P-Diffusers) | Downloaded into `image_encoder/`   |
