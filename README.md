@@ -139,7 +139,7 @@ or implicit downloads were relied upon.
 ### 2. Model Sources (CLI Version)
 
 | Component                | Source Repository                                                                                     | Notes                              |
-| ------------------------ |----------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------- |
+| ------------------------ |----------------------------------------------------------------------------------------------------- | ---------------------------------- | 
 | **WAN 2.1 Base**         | `alibaba-pai/Wan2.1-Fun-V1.1-1.3B-InP`                                                                | Foundation model bundle            |
 | **Tokenizer**            | [`Wan-AI/Wan2.1-T2V-1.3B-Diffusers`](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B-Diffusers)         | Downloaded into `tokenizer/`       |
 | **Text Encoder (UMT5)**  | [`Wan-AI/Wan2.1-T2V-1.3B-Diffusers`](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B-Diffusers)         | Downloaded into `tokenizer/`       | Downloaded into `text_encoder/` |
